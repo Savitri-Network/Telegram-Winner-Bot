@@ -1,0 +1,15 @@
+services:
+  savitri_bot:
+    build: .
+    env_file:
+      - .env
+    restart: always
+    volumes:
+      - ./data:/app/data
+      - ./backups:/app/backups
+    healthcheck:
+      test: ["CMD", "python", "healthcheck.py"]
+      interval: 1m
+      timeout: 10s
+      retries: 3
+      start_period: 30s

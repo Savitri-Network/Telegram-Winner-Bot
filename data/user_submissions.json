@@ -1,0 +1,14 @@
+{
+  "8214048645": {
+    "tg_id": 8214048645,
+    "username": "Prova",
+    "proofs": [
+      "data/proofs/8214048645_1762271289.jpg",
+      "data/proofs/8214048645_1762271811.jpg"
+    ],
+    "reg_wallet": "0xd9448b5A23981958B665F95173b911eBCA0dc634",
+    "reg_sig": "0x3e6fffd2ab0cb2d765cbfee3a7be6bed637d4afd1178c1870bd943b693206d56705d27fdd8bd3da12b84de909496812496a220218a9d717f8ad4684510c2d5061b"
+  },
+ 
+  }
+}

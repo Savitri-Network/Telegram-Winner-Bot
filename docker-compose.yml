@@ -1,0 +1,18 @@
+services:
+  savitri-rewards-bot:
+    build: .
+    container_name: savitri-rewards-bot
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - ./data:/app/data
+    command: python main.py
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.1'
+          memory: 128M

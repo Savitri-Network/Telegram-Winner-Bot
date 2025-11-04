@@ -1,0 +1,19 @@
+Ora puoi andare nella cartella del progetto:
+
+cd C:\Users\andre\savitri-rewards-bot
+
+
+Poi costruisci e avvia:
+
+docker compose build
+docker compose up -d
+
+
+E controlla i log:
+
+docker compose logs -f
+
+
+Dovresti vedere:
+
+🚀 SavitriRewardsBot is running...
