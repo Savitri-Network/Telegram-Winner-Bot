@@ -1193,6 +1193,146 @@ async def admin_import_list_cmd(update: Update, context: ContextTypes.DEFAULT_TY
             parse_mode=ParseMode.MARKDOWN
         )
 
+# -------------------- ADMIN DOWNLOAD SUBMISSIONS & PROOFS --------------------
+async def admin_download_submissions(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Admin command to download user_submissions.json file."""
+    if not is_admin(update.effective_user.id):
+        return
+    
+    if not SUBMISSIONS_FILE.exists():
+        await update.message.reply_text("❌ File user_submissions.json non trovato.")
+        return
+    
+    try:
+        # Leggi il file e invialo
+        with open(SUBMISSIONS_FILE, "rb") as f:
+            data = io.BytesIO(f.read())
+            data.name = "user_submissions.json"
+            
+            # Conta il numero di submission
+            subs = load_submissions()
+            count = len(subs)
+            
+            await update.message.reply_document(
+                document=data,
+                caption=f"📎 File user_submissions.json\n📊 Totale submission: {count}"
+            )
+    except Exception as e:
+        log.error("Failed to send submissions file: %s", e)
+        await update.message.reply_text(f"❌ Errore durante il download: {e}")
+
+async def admin_download_proofs(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Admin command to download all proof screenshots as a ZIP archive."""
+    if not is_admin(update.effective_user.id):
+        return
+    
+    proofs_dir = DATA_DIR / "proofs"
+    
+    if not proofs_dir.exists() or not any(proofs_dir.iterdir()):
+        await update.message.reply_text("❌ Nessuno screenshot trovato nella cartella proofs.")
+        return
+    
+    try:
+        # Crea un archivio ZIP temporaneo
+        ts = int(time.time())
+        zip_path = DATA_DIR / f"proofs_export_{ts}.zip"
+        
+        with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
+            proof_count = 0
+            for proof_file in proofs_dir.glob("*.jpg"):
+                try:
+                    # Aggiungi il file allo ZIP mantenendo solo il nome del file
+                    zf.write(proof_file, arcname=proof_file.name)
+                    proof_count += 1
+                except Exception as e:
+                    log.warning("Failed to add proof %s to zip: %s", proof_file, e)
+        
+        if proof_count == 0:
+            zip_path.unlink()  # Rimuovi lo ZIP vuoto
+            await update.message.reply_text("❌ Nessuno screenshot valido trovato.")
+            return
+        
+        # Leggi lo ZIP e invialo
+        with open(zip_path, "rb") as f:
+            data = io.BytesIO(f.read())
+            data.name = f"proofs_export_{ts}.zip"
+            
+            await update.message.reply_document(
+                document=data,
+                caption=f"📸 Screenshot degli utenti\n📊 Totale screenshot: {proof_count}"
+            )
+        
+        # Rimuovi il file temporaneo
+        zip_path.unlink()
+        
+    except Exception as e:
+        log.error("Failed to create proofs archive: %s", e)
+        await update.message.reply_text(f"❌ Errore durante la creazione dell'archivio: {e}")
+        # Pulisci il file temporaneo se esiste
+        if zip_path.exists():
+            zip_path.unlink()
+
+async def admin_download_all(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Admin command to download both submissions JSON and proofs in a single ZIP."""
+    if not is_admin(update.effective_user.id):
+        return
+    
+    try:
+        ts = int(time.time())
+        zip_path = DATA_DIR / f"user_data_export_{ts}.zip"
+        
+        with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
+            # Aggiungi il file JSON delle submission
+            if SUBMISSIONS_FILE.exists():
+                zf.write(SUBMISSIONS_FILE, arcname="user_submissions.json")
+                subs = load_submissions()
+                subs_count = len(subs)
+            else:
+                subs_count = 0
+            
+            # Aggiungi tutti gli screenshot
+            proofs_dir = DATA_DIR / "proofs"
+            proof_count = 0
+            if proofs_dir.exists():
+                for proof_file in proofs_dir.glob("*.jpg"):
+                    try:
+                        # Mantieni la struttura proofs/ nello ZIP
+                        zf.write(proof_file, arcname=f"proofs/{proof_file.name}")
+                        proof_count += 1
+                    except Exception as e:
+                        log.warning("Failed to add proof %s to zip: %s", proof_file, e)
+            
+            if subs_count == 0 and proof_count == 0:
+                zip_path.unlink()
+                await update.message.reply_text("❌ Nessun dato disponibile per il download.")
+                return
+        
+        # Leggi lo ZIP e invialo
+        with open(zip_path, "rb") as f:
+            data = io.BytesIO(f.read())
+            data.name = f"user_data_export_{ts}.zip"
+            
+            caption = (
+                f"📦 Export completo dati utenti\n"
+                f"📊 Submission: {subs_count}\n"
+                f"📸 Screenshot: {proof_count}"
+            )
+            
+            await update.message.reply_document(
+                document=data,
+                caption=caption
+            )
+        
+        # Rimuovi il file temporaneo
+        zip_path.unlink()
+        
+    except Exception as e:
+        log.error("Failed to create complete export: %s", e)
+        await update.message.reply_text(f"❌ Errore durante la creazione dell'export: {e}")
+        # Pulisci il file temporaneo se esiste
+        if zip_path.exists():
+            zip_path.unlink()
+
 # -------------------- WATCHDOG via JobQueue --------------------
 async def watchdog_tick(context: ContextTypes.DEFAULT_TYPE):
     # Touch heartbeat
@@ -1259,6 +1399,10 @@ def main():
     # Admin commands to import by replying to the CSV
     application.add_handler(CommandHandler("admin_import_list", admin_import_list_cmd))
     application.add_handler(CommandHandler("admin_upload_zealy_csv", admin_import_list_cmd))
+    # Admin: download submissions and proofs
+    application.add_handler(CommandHandler("admin_download_submissions", admin_download_submissions))
+    application.add_handler(CommandHandler("admin_download_proofs", admin_download_proofs))
+    application.add_handler(CommandHandler("admin_download_all", admin_download_all))
 
     # Error handler
     application.add_error_handler(on_error)
