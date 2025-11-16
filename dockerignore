@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.sqlite3
+
+# Virtualenv
+.venv/
+env/
+venv/
+
+# Local data & logs (we mount ./data as a volume at runtime)
+data/
+logs/
+
+# Git
+.git/
+.gitignore
+
+# OS/editor
+.DS_Store
+.vscode/
+.idea/
+
+# Secrets
+.env
+.env.*

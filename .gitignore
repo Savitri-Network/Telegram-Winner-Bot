@@ -64,3 +64,12 @@ heartbeat.txt
 Thumbs.db
 .DS_Store
 
+# Test files and obsolete files
+Test.csv
+zealy_winners.csv
+*Rewards Bot*.txt
+comandi per bot*.txt
+obsolete_file/
+savitri_rewards_bot.zip
+savitri_rewards_bot/
+
